@@ -353,6 +353,31 @@ export function listShipments() {
         Boolean(shipment)
     );
 }
+
+export function deleteShipment(trackingNumber: string) {
+  // Delete related tracking events
+  db.prepare(
+    "DELETE FROM tracking_events WHERE tracking_number = ?"
+  ).run(trackingNumber);
+
+  // Delete related customer messages
+  db.prepare(
+    "DELETE FROM customer_messages WHERE tracking_number = ?"
+  ).run(trackingNumber);
+
+  // Delete related notification subscriptions
+  db.prepare(
+    "DELETE FROM notification_subscriptions WHERE tracking_number = ?"
+  ).run(trackingNumber);
+
+  // Finally delete the shipment
+  db.prepare(
+  "DELETE FROM shipments WHERE tracking_number = ?"
+).run(trackingNumber);
+
+return true;
+}
+
 export function createShipment(
   shipment: Shipment
 ) {

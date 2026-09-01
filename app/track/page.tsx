@@ -136,6 +136,12 @@ export default async function TrackPage(props: Props) {
 />
   </div>
 </div>
+<div>
+  <span>Customer email</span>
+  <strong>
+    {shipment.customerEmail || "Not specified"}
+  </strong>
+</div>
 
             <div>
               <span>Current status</span>

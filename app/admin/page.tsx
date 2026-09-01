@@ -14,6 +14,7 @@ import {
 import {
   createShipment,
   createTrackingEvent,
+  deleteShipment,
   getShipmentSubscribers,
   listCustomerMessages,
   listShipments,
@@ -26,6 +27,7 @@ import {
 import {
   sendCustomerReplyEmail,
 } from "@/lib/send-customer-reply-email";
+import DeleteShipmentButton from "@/components/DeleteShipmentButton";
 
 async function login(data: FormData) {
   "use server";
@@ -60,39 +62,35 @@ async function addShipment(data: FormData) {
 
   /* Sender information */
 
-  const customerName = String(
-    data.get("customerName") ?? ""
-  ).trim();
-
-  const customerEmail = String(
-    data.get("customerEmail") ?? ""
-  ).trim();
-
-  const senderPhone = String(
-    data.get("senderPhone") ?? ""
-  ).trim();
-
-  const origin = String(
-    data.get("origin") ?? ""
-  ).trim();
-
-
-  /* Receiver information */
-
   const receiverName = String(
-    data.get("receiverName") ?? ""
-  ).trim();
+  data.get("receiverName") ?? ""
+).trim();
 
-  const receiverPhone = String(
-    data.get("receiverPhone") ?? ""
-  ).trim();
-  const receiverEmail = String(
+const receiverPhone = String(
+  data.get("receiverPhone") ?? ""
+).trim();
+
+const receiverEmail = String(
   data.get("receiverEmail") ?? ""
 ).trim();
 
-  const destination = String(
-    data.get("destination") ?? ""
-  ).trim();
+// The receiver is the customer who receives shipment updates
+const customerName = receiverName;
+const customerEmail = receiverEmail;
+
+const senderPhone = String(
+  data.get("senderPhone") ?? ""
+).trim();
+
+const origin = String(
+  data.get("origin") ?? ""
+).trim();
+ 
+
+
+const destination = String(
+  data.get("destination") ?? ""
+).trim();
 
 
   /* Package information */
@@ -117,21 +115,31 @@ if (
   packageImageFile.size > 0
 ) {
   const allowedTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-  ];
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+];
 
   if (!allowedTypes.includes(packageImageFile.type)) {
     redirect("/admin?error=invalid-image");
   }
 
-  const extension =
-    packageImageFile.type === "image/png"
-      ? "png"
-      : packageImageFile.type === "image/webp"
-        ? "webp"
-        : "jpg";
+ let extension = "jpg";
+
+if (packageImageFile.type === "image/png") {
+  extension = "png";
+} else if (packageImageFile.type === "image/webp") {
+  extension = "webp";
+} else if (packageImageFile.type === "video/mp4") {
+  extension = "mp4";
+} else if (packageImageFile.type === "video/webm") {
+  extension = "webm";
+} else if (packageImageFile.type === "video/quicktime") {
+  extension = "mov";
+}
 
   const fileName = `${randomUUID()}.${extension}`;
 
@@ -205,8 +213,9 @@ const updatedAt = createdAt;
 
 createShipment({
   trackingNumber,
-  customerName,
-  customerEmail,
+  customerName: receiverName,
+  customerEmail: receiverEmail,
+
   senderPhone,
 
   receiverName,
@@ -341,19 +350,40 @@ for (const email of subscribers) {
   );
 }
 
-
-async function reply(
-  data: FormData
-) {
+async function removeShipment(data: FormData) {
   "use server";
 
   if (!(await isAdmin())) {
     redirect("/admin");
   }
 
-  const id = Number(
-    data.get("messageId")
-  );
+  const trackingNumber = String(
+    data.get("trackingNumber") ?? ""
+  ).trim();
+
+  if (!trackingNumber) {
+    redirect("/admin?error=delete-failed");
+  }
+
+  const deleted = deleteShipment(trackingNumber);
+
+  if (!deleted) {
+    redirect("/admin?error=delete-failed");
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/track");
+
+  redirect("/admin?deleted=1");
+}
+async function reply(data: FormData) {
+  "use server";
+
+  if (!(await isAdmin())) {
+    redirect("/admin");
+  }
+
+  const id = Number(data.get("messageId") ?? 0);
 
   const text = String(
     data.get("reply") ?? ""
@@ -371,38 +401,53 @@ async function reply(
     data.get("trackingNumber") ?? ""
   ).trim();
 
-  if (!id || !text) {
-    redirect(
-      "/admin?error=reply-required"
-    );
+  if (
+    !id ||
+    !text ||
+    !senderEmail ||
+    !senderName ||
+    !trackingNumber
+  ) {
+    redirect("/admin?error=reply-required");
   }
 
-  await sendCustomerReplyEmail({
-    email: senderEmail,
-    senderName,
-    trackingNumber,
-    reply: text,
-  });
+  try {
+    await sendCustomerReplyEmail({
+      email: senderEmail,
+      senderName,
+      trackingNumber,
+      reply: text,
+    });
 
-  replyToCustomerMessage(
-    id,
-    text
-  );
+    replyToCustomerMessage(
+      id,
+      text
+    );
+
+    revalidatePath("/admin");
+
+  } catch (error) {
+    console.error(
+      "Failed to send customer reply:",
+      error
+    );
+
+    redirect("/admin?error=reply-failed");
+  }
 
   redirect("/admin?replied=1");
 }
-
 
 export default async function AdminPage(
   props: PageProps<"/admin">
 ) {
   const {
-    error,
-    created,
-    locationUpdated,
-    replied,
-  } = await props.searchParams;
-
+  error,
+  created,
+  locationUpdated,
+  replied,
+  deleted,
+} = await props.searchParams;
 
   /* Check configuration */
 
@@ -546,6 +591,32 @@ export default async function AdminPage(
           Reply saved.
         </p>
       )}
+      {created && (
+  <p className="success-message">
+    Shipment created:{" "}
+    <strong>
+      {created}
+    </strong>
+  </p>
+)}
+
+{locationUpdated === "1" && (
+  <p className="success-message">
+    Location and timeline updated.
+  </p>
+)}
+
+{replied === "1" && (
+  <p className="success-message">
+    Reply saved.
+  </p>
+)}
+
+{deleted === "1" && (
+  <p className="success-message">
+    Shipment deleted successfully.
+  </p>
+)}
 
 
       {error &&
@@ -736,12 +807,11 @@ export default async function AdminPage(
 
 <label>
   Package image
-
-  <input
-    name="packageImage"
-    type="file"
-    accept="image/png,image/jpeg,image/webp"
-  />
+<input
+  name="packageImage"
+  type="file"
+  accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime"
+/>
 </label>
 
 
@@ -808,43 +878,32 @@ export default async function AdminPage(
             shipments.map((shipment) => (
 
               <article
-                className="shipment-row"
-                key={
-                  shipment.trackingNumber
-                }
-              >
+  className="shipment-row"
+  key={shipment.trackingNumber}
+>
+  <strong>
+    {shipment.trackingNumber}
+  </strong>
 
-                <strong>
-                  {
-                    shipment.trackingNumber
-                  }
-                </strong>
+  <span>
+    {shipment.currentLocation ||
+      shipment.origin ||
+      "No location yet"}
 
+    {" → "}
 
-                <span>
-                  {
-                    shipment.currentLocation ||
-                    shipment.origin ||
-                    "No location yet"
-                  }
+    {shipment.destination}
+  </span>
 
-                  {" → "}
+  <span className="status-pill">
+    {shipment.status}
+  </span>
 
-                  {
-                    shipment.destination
-                  }
-                </span>
-
-
-                <span
-                  className="status-pill"
-                >
-                  {
-                    shipment.status
-                  }
-                </span>
-
-              </article>
+  <DeleteShipmentButton
+  action={removeShipment}
+  trackingNumber={shipment.trackingNumber}
+/>
+</article>
 
             ))
 
