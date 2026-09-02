@@ -16,9 +16,12 @@ const progressSteps = [
   "Delivered",
 ];
 
-function getProgressIndex(status: string) {
+
+function getProgressIndex(status?: string | null) {
+  const normalizedStatus = String(status ?? "").trim().toLowerCase();
+
   const index = progressSteps.findIndex(
-    (step) => step.toLowerCase() === status.toLowerCase()
+    (step) => String(step ?? "").trim().toLowerCase() === normalizedStatus
   );
 
   return index === -1 ? 0 : index;
@@ -37,10 +40,9 @@ export default async function TrackPage(props: Props) {
       </main>
     );
   }
+const shipment = await getShipment(number);
 
-  const shipment = getShipment(number);
-
-  if (!shipment) {
+if (!shipment) {
     return (
       <main className="track-shell">
         <section className="track-card">
@@ -54,10 +56,10 @@ export default async function TrackPage(props: Props) {
     );
   }
 
-  const events = listTrackingEvents(number);
-  const currentStep = getProgressIndex(shipment.status);
+  const events = await listTrackingEvents(number);
+const currentStep = getProgressIndex(shipment.status);
 
-  return (
+return (
     <main className="track-shell">
       <section className="track-card">
 

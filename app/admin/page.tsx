@@ -210,8 +210,7 @@ if (packageImageFile.type === "image/png") {
 
 
 const updatedAt = createdAt;
-
-createShipment({
+await createShipment({
   trackingNumber,
   customerName: receiverName,
   customerEmail: receiverEmail,
@@ -226,32 +225,31 @@ createShipment({
   destination,
   service,
   status: "Shipment created",
+
   description,
   packageWeight,
   packageDimensions: "",
   packageCount: "",
+
   currentLocation: origin,
   estimatedDelivery: "To be confirmed",
   packageImage,
+
   shippingCost,
   paymentStatus,
+
   createdAt,
   updatedAt,
 });
 
   /* Create first tracking event */
-
-  createTrackingEvent({
-    trackingNumber,
-
-    status: "Shipment created",
-
-    location: origin,
-
-    note: "Shipment record created and awaiting processing.",
-
-    createdAt,
-  });
+await createTrackingEvent({
+  trackingNumber,
+  status: "Shipment created",
+  location: origin,
+  note: "Shipment record created and awaiting processing.",
+  createdAt,
+});
 
 
   revalidatePath("/track");
@@ -313,7 +311,7 @@ updateShipmentLocation(
   updateNote
 );
 const subscribers =
-  getShipmentSubscribers(trackingNumber);
+  await getShipmentSubscribers(trackingNumber);
   console.log(
   "Shipment subscribers:",
   trackingNumber,
@@ -527,10 +525,8 @@ export default async function AdminPage(
   }
 
 
-  const shipments = listShipments();
-
-  const messages =
-    listCustomerMessages();
+const shipments = await listShipments();
+const messages = await listCustomerMessages();
 
 
   return (

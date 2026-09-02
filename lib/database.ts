@@ -1,7 +1,4 @@
-import { DatabaseSync } from "node:sqlite";
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
-
+import { supabaseAdmin as supabase } from "./supabase-admin";
 export type Shipment = {
   trackingNumber: string;
   customerName: string;
@@ -55,391 +52,168 @@ export type TrackingEvent = {
   createdAt: string;
 };
 
-const databasePath = join(
-  process.cwd(),
-  "data",
-  "shipments.db"
-);
-
-const globalDatabase = globalThis as unknown as {
-  shipmentDb?: DatabaseSync;
-};
-
-mkdirSync(
-  join(process.cwd(), "data"),
-  { recursive: true }
-);
-
-const db =
-  globalDatabase.shipmentDb ??
-  new DatabaseSync(databasePath);
-
-globalDatabase.shipmentDb = db;
-
 /* ----------------------------------
-   SHIPMENTS TABLE
+   SHIPMENT MAPPER
 ---------------------------------- */
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS shipments (
-  tracking_number TEXT PRIMARY KEY,
-  customer_name TEXT NOT NULL,
-  customer_email TEXT NOT NULL DEFAULT '',
-  sender_phone TEXT NOT NULL DEFAULT '',
-  receiver_name TEXT NOT NULL DEFAULT '',
-  receiver_phone TEXT NOT NULL DEFAULT '',
-  receiver_email TEXT NOT NULL DEFAULT '',
-  origin TEXT NOT NULL DEFAULT '',
-  destination TEXT NOT NULL,
-  service TEXT NOT NULL,
-  status TEXT NOT NULL,
-  description TEXT NOT NULL,
-  package_weight TEXT NOT NULL DEFAULT '',
-  package_dimensions TEXT NOT NULL DEFAULT '',
-  package_count TEXT NOT NULL DEFAULT '',
-  current_location TEXT NOT NULL DEFAULT '',
-  estimated_delivery TEXT NOT NULL DEFAULT '',
-  package_image TEXT NOT NULL DEFAULT '',
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-)
-`);
-try {
-  db.exec(`
-    ALTER TABLE shipments
-    ADD COLUMN updated_at TEXT
-  `);
+function mapShipment(row: Record<string, unknown>): Shipment {
+  return {
+    trackingNumber: String(row.tracking_number ?? ""),
+    customerName: String(row.customer_name ?? ""),
+    customerEmail: String(row.customer_email ?? ""),
+    senderPhone: String(row.sender_phone ?? ""),
 
-  db.exec(`
-    UPDATE shipments
-    SET updated_at = created_at
-    WHERE updated_at IS NULL
-  `);
-} catch (error) {
-  // Column already exists, so we can safely continue.
+    receiverName: String(row.receiver_name ?? ""),
+    receiverPhone: String(row.receiver_phone ?? ""),
+    receiverEmail: String(row.receiver_email ?? ""),
+
+    origin: String(row.origin ?? ""),
+    destination: String(row.destination ?? ""),
+
+    service: String(row.service ?? ""),
+    status: String(row.status ?? ""),
+
+    description: String(row.description ?? ""),
+    packageWeight: String(row.package_weight ?? ""),
+    packageDimensions: String(row.package_dimensions ?? ""),
+    packageCount: String(row.package_count ?? ""),
+
+    currentLocation: String(row.current_location ?? ""),
+    estimatedDelivery: String(row.estimated_delivery ?? ""),
+    packageImage: String(row.package_image ?? ""),
+
+    shippingCost: String(row.shipping_cost ?? ""),
+    paymentStatus: String(row.payment_status ?? ""),
+
+    createdAt: String(row.created_at ?? ""),
+    updatedAt: String(row.updated_at ?? ""),
+  };
 }
-
-/* ----------------------------------
-   NOTIFICATION SUBSCRIPTIONS TABLE
----------------------------------- */
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS notification_subscriptions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tracking_number TEXT NOT NULL,
-    email TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-
-    UNIQUE(tracking_number, email)
-  )
-`);
-
-/* ----------------------------------
-   SAFE DATABASE UPGRADES
----------------------------------- */
-const columns = db
-  .prepare("PRAGMA table_info(shipments)")
-  .all() as Array<{ name: string }>;
-
-if (!columns.some((column) => column.name === "customer_email")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN customer_email TEXT NOT NULL DEFAULT ''"
-  );
-}
-
-if (!columns.some((column) => column.name === "origin")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN origin TEXT NOT NULL DEFAULT ''"
-  );
-}
-
-if (!columns.some((column) => column.name === "current_location")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN current_location TEXT NOT NULL DEFAULT ''"
-  );
-}
-
-if (!columns.some((column) => column.name === "estimated_delivery")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN estimated_delivery TEXT NOT NULL DEFAULT ''"
-  );
-}
-
-if (!columns.some((column) => column.name === "package_image")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN package_image TEXT NOT NULL DEFAULT ''"
-  );
-}
-
-if (!columns.some((column) => column.name === "package_weight")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN package_weight TEXT NOT NULL DEFAULT ''"
-  );
-}
-
-if (!columns.some((column) => column.name === "package_dimensions")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN package_dimensions TEXT NOT NULL DEFAULT ''"
-  );
-}
-
-if (!columns.some((column) => column.name === "package_count")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN package_count TEXT NOT NULL DEFAULT ''"
-  );
-}
-
-if (!columns.some((column) => column.name === "sender_phone")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN sender_phone TEXT NOT NULL DEFAULT ''"
-  );
-}
-
-/* ADD THESE THREE BLOCKS */
-
-if (!columns.some((column) => column.name === "receiver_name")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN receiver_name TEXT NOT NULL DEFAULT ''"
-  );
-}
-
-if (!columns.some((column) => column.name === "receiver_phone")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN receiver_phone TEXT NOT NULL DEFAULT ''"
-  );
-}
-
-if (!columns.some((column) => column.name === "receiver_email")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN receiver_email TEXT NOT NULL DEFAULT ''"
-  );
-}
-
-/* THEN YOUR EXISTING CODE CONTINUES */
-
-if (!columns.some((column) => column.name === "shipping_cost")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN shipping_cost TEXT NOT NULL DEFAULT ''"
-  );
-}
-
-if (!columns.some((column) => column.name === "payment_status")) {
-  db.exec(
-    "ALTER TABLE shipments ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'Pending'"
-  );
-}
-
-/* ----------------------------------
-   CUSTOMER MESSAGES TABLE
----------------------------------- */
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS customer_messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tracking_number TEXT NOT NULL,
-    sender_name TEXT NOT NULL,
-    sender_email TEXT NOT NULL,
-    message TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'Open',
-    created_at TEXT NOT NULL,
-    reply TEXT,
-    replied_at TEXT
-  )
-`);
-
-/* ----------------------------------
-   SAFE CUSTOMER MESSAGE UPGRADES
----------------------------------- */
-
-const messageColumns = db
-  .prepare("PRAGMA table_info(customer_messages)")
-  .all() as Array<{ name: string }>;
-
-if (
-  !messageColumns.some(
-    (column) => column.name === "status"
-  )
-) {
-  db.exec(
-    "ALTER TABLE customer_messages ADD COLUMN status TEXT NOT NULL DEFAULT 'Open'"
-  );
-}
-
-
-/* ----------------------------------
-   TRACKING EVENTS TABLE
----------------------------------- */
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS tracking_events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tracking_number TEXT NOT NULL,
-    status TEXT NOT NULL,
-    location TEXT NOT NULL,
-    note TEXT NOT NULL,
-    created_at TEXT NOT NULL
-  )
-`);
-
 
 /* ----------------------------------
    SHIPMENT FUNCTIONS
 ---------------------------------- */
 
-function mapShipment(
-  row: unknown
-): Shipment | undefined {
-  if (!row || typeof row !== "object") {
+export async function getShipment(
+  trackingNumber: string
+): Promise<Shipment | undefined> {
+  const { data, error } = await supabase
+    .from("shipments")
+    .select("*")
+    .eq("tracking_number", trackingNumber)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
     return undefined;
   }
 
-  const value = row as Record<string, string>;
-
- return {
-  trackingNumber: value.tracking_number,
-  customerName: value.customer_name,
-  customerEmail: value.customer_email,
-  senderPhone: value.sender_phone,
-
-  receiverName: value.receiver_name,
-  receiverPhone: value.receiver_phone,
-  receiverEmail: value.receiver_email,
-
-  origin: value.origin,
-  destination: value.destination,
-
-  service: value.service,
-  status: value.status,
-
-  description: value.description,
-  packageWeight: value.package_weight,
-  packageDimensions: value.package_dimensions,
-  packageCount: value.package_count,
-
-  currentLocation: value.current_location,
-  estimatedDelivery: value.estimated_delivery,
-
-  packageImage: value.package_image,
-  shippingCost: value.shipping_cost,
-  paymentStatus: value.payment_status,
-
-  createdAt: value.created_at,
-  updatedAt: value.updated_at,
-};
+  return mapShipment(data);
 }
 
-export function getShipment(
+export async function listShipments(): Promise<Shipment[]> {
+  const { data, error } = await supabase
+    .from("shipments")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map(mapShipment);
+}
+
+export async function deleteShipment(
   trackingNumber: string
 ) {
-  return mapShipment(
-    db
-      .prepare(
-        "SELECT * FROM shipments WHERE tracking_number = ?"
-      )
-      .get(trackingNumber)
-  );
+  const { error: eventsError } = await supabase
+    .from("tracking_events")
+    .delete()
+    .eq("tracking_number", trackingNumber);
+
+  if (eventsError) {
+    throw new Error(eventsError.message);
+  }
+
+  const { error: messagesError } = await supabase
+    .from("customer_messages")
+    .delete()
+    .eq("tracking_number", trackingNumber);
+
+  if (messagesError) {
+    throw new Error(messagesError.message);
+  }
+
+  const { error: subscriptionsError } = await supabase
+    .from("notification_subscriptions")
+    .delete()
+    .eq("tracking_number", trackingNumber);
+
+  if (subscriptionsError) {
+    throw new Error(subscriptionsError.message);
+  }
+
+  const { error: shipmentError } = await supabase
+    .from("shipments")
+    .delete()
+    .eq("tracking_number", trackingNumber);
+
+  if (shipmentError) {
+    throw new Error(shipmentError.message);
+  }
+
+  return true;
 }
 
-
-export function listShipments() {
-  return db
-    .prepare(
-      "SELECT * FROM shipments ORDER BY created_at DESC"
-    )
-    .all()
-    .map(mapShipment)
-    .filter(
-      (shipment): shipment is Shipment =>
-        Boolean(shipment)
-    );
-}
-
-export function deleteShipment(trackingNumber: string) {
-  // Delete related tracking events
-  db.prepare(
-    "DELETE FROM tracking_events WHERE tracking_number = ?"
-  ).run(trackingNumber);
-
-  // Delete related customer messages
-  db.prepare(
-    "DELETE FROM customer_messages WHERE tracking_number = ?"
-  ).run(trackingNumber);
-
-  // Delete related notification subscriptions
-  db.prepare(
-    "DELETE FROM notification_subscriptions WHERE tracking_number = ?"
-  ).run(trackingNumber);
-
-  // Finally delete the shipment
-  db.prepare(
-  "DELETE FROM shipments WHERE tracking_number = ?"
-).run(trackingNumber);
-
-return true;
-}
-
-export function createShipment(
+export async function createShipment(
   shipment: Shipment
 ) {
-  db
-    .prepare(`
-      INSERT INTO shipments (
-        tracking_number,
-        customer_name,
-        customer_email,
-        sender_phone,
+  const { error } = await supabase
+    .from("shipments")
+    .insert({
+      tracking_number: shipment.trackingNumber,
+      customer_name: shipment.customerName,
+      customer_email: shipment.customerEmail,
+      sender_phone: shipment.senderPhone,
 
-        receiver_name,
-        receiver_phone,
-        receiver_email,
+      receiver_name: shipment.receiverName,
+      receiver_phone: shipment.receiverPhone,
+      receiver_email: shipment.receiverEmail,
 
-        origin,
-        destination,
-        service,
-        status,
-        description,
-        package_weight,
-        package_dimensions,
-        package_count,
-        current_location,
-        estimated_delivery,
-        package_image,
-        shipping_cost,
-        payment_status,
-        created_at,
-        updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-    .run(
-      shipment.trackingNumber,
-      shipment.customerName,
-      shipment.customerEmail,
-      shipment.senderPhone,
+      origin: shipment.origin,
+      destination: shipment.destination,
 
-      shipment.receiverName,
-      shipment.receiverPhone,
-      shipment.receiverEmail,
+      service: shipment.service,
+      status: shipment.status,
 
-      shipment.origin,
-      shipment.destination,
-      shipment.service,
-      shipment.status,
-      shipment.description,
-      shipment.packageWeight,
-      shipment.packageDimensions,
-      shipment.packageCount,
-      shipment.currentLocation,
-      shipment.estimatedDelivery,
-      shipment.packageImage,
-      shipment.shippingCost,
-      shipment.paymentStatus,
-      shipment.createdAt,
-      shipment.updatedAt
-    );
+      description: shipment.description,
+      package_weight: shipment.packageWeight,
+      package_dimensions: shipment.packageDimensions,
+      package_count: shipment.packageCount,
+
+      current_location: shipment.currentLocation,
+      estimated_delivery: shipment.estimatedDelivery,
+      package_image: shipment.packageImage,
+
+      shipping_cost: shipment.shippingCost,
+      payment_status: shipment.paymentStatus,
+
+      created_at: shipment.createdAt,
+      updated_at: shipment.updatedAt,
+    });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return true;
 }
 
-export function updateShipmentLocation(
+export async function updateShipmentLocation(
   trackingNumber: string,
   status: string,
   location: string,
@@ -448,246 +222,213 @@ export function updateShipmentLocation(
 ) {
   const now = new Date().toISOString();
 
-  db
-    .prepare(`
-      UPDATE shipments
-      SET
-        status = ?,
-        current_location = ?,
-        estimated_delivery = ?,
-        updated_at = ?
-      WHERE tracking_number = ?
-    `)
-    .run(
+  const { error: shipmentError } = await supabase
+    .from("shipments")
+    .update({
       status,
-      location,
-      estimatedDelivery,
-      now,
-      trackingNumber
-    );
+      current_location: location,
+      estimated_delivery: estimatedDelivery,
+      updated_at: now,
+    })
+    .eq("tracking_number", trackingNumber);
 
-  db
-    .prepare(`
-      INSERT INTO tracking_events (
-        tracking_number,
-        status,
-        location,
-        note,
-        created_at
-      )
-      VALUES (?, ?, ?, ?, ?)
-    `)
-    .run(
-      trackingNumber,
+  if (shipmentError) {
+    throw new Error(shipmentError.message);
+  }
+
+  const { error: eventError } = await supabase
+    .from("tracking_events")
+    .insert({
+      tracking_number: trackingNumber,
       status,
       location,
       note,
-      now
-    );
+      created_at: now,
+    });
+
+  if (eventError) {
+    throw new Error(eventError.message);
+  }
+
+  return true;
 }
 
 /* ----------------------------------
    TRACKING EVENTS
 ---------------------------------- */
 
-export function createTrackingEvent(
+export async function createTrackingEvent(
   event: Omit<TrackingEvent, "id">
 ) {
-  db
-    .prepare(`
-      INSERT INTO tracking_events (
-        tracking_number,
-        status,
-        location,
-        note,
-        created_at
-      )
-      VALUES (?, ?, ?, ?, ?)
-    `)
-    .run(
-      event.trackingNumber,
-      event.status,
-      event.location,
-      event.note,
-      event.createdAt
-    );
-}
-
-
-export function listTrackingEvents(
-  trackingNumber: string
-) {
-  return db
-    .prepare(`
-      SELECT *
-      FROM tracking_events
-      WHERE tracking_number = ?
-      ORDER BY created_at DESC
-    `)
-    .all(trackingNumber)
-    .map((row) => {
-      const value =
-        row as Record<string, string | number>;
-
-      return {
-        id: Number(value.id),
-        trackingNumber: String(
-          value.tracking_number
-        ),
-        status: String(value.status),
-        location: String(value.location),
-        note: String(value.note),
-        createdAt: String(value.created_at),
-      };
+  const { error } = await supabase
+    .from("tracking_events")
+    .insert({
+      tracking_number: event.trackingNumber,
+      status: event.status,
+      location: event.location,
+      note: event.note,
+      created_at: event.createdAt,
     });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return true;
 }
 
+export async function listTrackingEvents(
+  trackingNumber: string
+): Promise<TrackingEvent[]> {
+  const { data, error } = await supabase
+    .from("tracking_events")
+    .select("*")
+    .eq("tracking_number", trackingNumber)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map((row) => ({
+    id: Number(row.id),
+    trackingNumber: String(row.tracking_number),
+    status: String(row.status),
+    location: String(row.location),
+    note: String(row.note),
+    createdAt: String(row.created_at),
+  }));
+}
 
 /* ----------------------------------
    CUSTOMER MESSAGES
 ---------------------------------- */
 
 function mapMessage(
-  row: unknown
-): CustomerMessage | undefined {
-  if (!row || typeof row !== "object") {
-    return undefined;
-  }
-
-  const value =
-    row as Record<string, string | number | null>;
-
+  row: Record<string, unknown>
+): CustomerMessage {
   return {
-    id: Number(value.id),
-    trackingNumber: String(
-      value.tracking_number
-    ),
-    senderName: String(value.sender_name),
-    senderEmail: String(value.sender_email),
-    message: String(value.message),
-    status: String(value.status),
-    createdAt: String(value.created_at),
-    reply: value.reply
-      ? String(value.reply)
-      : null,
-    repliedAt: value.replied_at
-      ? String(value.replied_at)
+    id: Number(row.id),
+    trackingNumber: String(row.tracking_number ?? ""),
+    senderName: String(row.sender_name ?? ""),
+    senderEmail: String(row.sender_email ?? ""),
+    message: String(row.message ?? ""),
+    status: String(row.status ?? "Open"),
+    createdAt: String(row.created_at ?? ""),
+    reply: row.reply ? String(row.reply) : null,
+    repliedAt: row.replied_at
+      ? String(row.replied_at)
       : null,
   };
 }
 
-
-
-
-export function createCustomerMessage(
+export async function createCustomerMessage(
   message: Omit<
     CustomerMessage,
     "id" | "reply" | "repliedAt"
   >
 ) {
-  db
-    .prepare(`
-      INSERT INTO customer_messages (
-        tracking_number,
-        sender_name,
-        sender_email,
-        message,
-        status,
-        created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?)
-    `)
-    .run(
-      message.trackingNumber,
-      message.senderName,
-      message.senderEmail,
-      message.message,
-      message.status ?? "Open",
-      message.createdAt
-    );
+  const { error } = await supabase
+    .from("customer_messages")
+    .insert({
+      tracking_number: message.trackingNumber,
+      sender_name: message.senderName,
+      sender_email: message.senderEmail,
+      message: message.message,
+      status: message.status ?? "Open",
+      created_at: message.createdAt,
+    });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return true;
 }
 
+export async function listCustomerMessages(): Promise<
+  CustomerMessage[]
+> {
+  const { data, error } = await supabase
+    .from("customer_messages")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-export function listCustomerMessages() {
-  return db
-    .prepare(`
-      SELECT *
-      FROM customer_messages
-      ORDER BY created_at DESC
-    `)
-    .all()
-    .map(mapMessage)
-    .filter(
-      (message): message is CustomerMessage =>
-        Boolean(message)
-    );
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map(mapMessage);
 }
 
-
-export function replyToCustomerMessage(
+export async function replyToCustomerMessage(
   id: number,
   reply: string
 ) {
-  db
-    .prepare(`
-      UPDATE customer_messages
-      SET
-        reply = ?,
-        replied_at = ?
-      WHERE id = ?
-    `)
-    .run(
+  const { error } = await supabase
+    .from("customer_messages")
+    .update({
       reply,
-      new Date().toISOString(),
-      id
-    );
+      replied_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return true;
 }
 
-export function subscribeToShipmentUpdates(
+/* ----------------------------------
+   NOTIFICATION SUBSCRIPTIONS
+---------------------------------- */
+
+export async function subscribeToShipmentUpdates(
   trackingNumber: string,
   email: string
 ) {
-  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("notification_subscriptions")
+    .upsert(
+      {
+        tracking_number: trackingNumber,
+        email,
+        created_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "tracking_number,email",
+        ignoreDuplicates: true,
+      }
+    );
 
-  db.prepare(`
-    INSERT OR IGNORE INTO notification_subscriptions (
-      tracking_number,
-      email,
-      created_at
-    )
-    VALUES (?, ?, ?)
-  `).run(
-    trackingNumber,
-    email,
-    now
-  );
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return true;
 }
 
-export function getShipmentSubscribers(
+export async function getShipmentSubscribers(
   trackingNumber: string
-) {
-  const shipment = db
-    .prepare(`
-      SELECT
-        customer_email,
-        receiver_email
-      FROM shipments
-      WHERE tracking_number = ?
-    `)
-    .get(trackingNumber) as
-    | {
-        customer_email: string | null;
-        receiver_email: string | null;
-      }
-    | undefined;
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("shipments")
+    .select("customer_email, receiver_email")
+    .eq("tracking_number", trackingNumber)
+    .maybeSingle();
 
-  if (!shipment) {
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
     return [];
   }
 
   return [
-    shipment.customer_email,
-    shipment.receiver_email,
+    data.customer_email,
+    data.receiver_email,
   ]
     .filter(
       (email): email is string =>
