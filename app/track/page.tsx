@@ -139,9 +139,9 @@ return (
   </div>
 </div>
 <div>
-  <span>Customer email</span>
+  <span>Receiver email</span>
   <strong>
-    {shipment.customerEmail || "Not specified"}
+    {shipment.receiverEmail || "Not specified"}
   </strong>
 </div>
 
@@ -347,9 +347,23 @@ return (
 
   <div className="track-grid">
     <div>
-      <span>Shipping cost</span>
+      <span>Total shipping cost</span>
       <strong>
         {shipment.shippingCost || "Not specified"}
+      </strong>
+    </div>
+
+    <div>
+      <span>Amount paid</span>
+      <strong>
+        {shipment.amountPaid || "0"}
+      </strong>
+    </div>
+
+    <div>
+      <span>Remaining balance</span>
+      <strong>
+        {shipment.remainingBalance || "0"}
       </strong>
     </div>
 
@@ -360,8 +374,8 @@ return (
       </strong>
     </div>
   </div>
-</section>
-         <p className="disclaimer">
+</section>       
+ <p className="disclaimer">
   Please contact SwiftRoute support if you have questions about
   shipment payment information.
 </p>

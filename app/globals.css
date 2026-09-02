@@ -2657,3 +2657,425 @@ footer {
 .delete-button:hover {
   background: #b91c1c;
 }
+
+
+/* =========================================
+   IMPROVED ADMIN SECTIONS
+   Keeps all existing functionality
+========================================= */
+
+/* Make selects match the other inputs */
+
+.shipment-form select,
+.tracking-update-form select {
+  border: 1px solid #c6d1df;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  padding: 11px;
+  width: 100%;
+}
+
+
+/* File upload */
+
+.shipment-form input[type="file"] {
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+
+/* Recent shipment rows */
+
+.shipment-row {
+  border: 1px solid #e7edf7;
+  border-radius: 10px;
+
+  display: grid;
+  grid-template-columns:
+    minmax(130px, auto)
+    1fr
+    auto
+    auto;
+
+  align-items: center;
+  gap: 14px;
+
+  padding: 16px;
+  margin-top: 12px;
+
+  background: #fbfcfe;
+}
+
+.shipment-row strong {
+  color: #172033;
+  font-size: 14px;
+}
+
+.shipment-row > span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+
+/* Shipment list spacing */
+
+.shipment-list {
+  max-height: 700px;
+  overflow-y: auto;
+}
+
+
+/* =========================================
+   PAYMENT MANAGEMENT
+========================================= */
+
+.message-inbox {
+  background: #fff;
+  border: 1px solid #dfe8f5;
+  border-radius: 14px;
+
+  padding: 28px;
+  margin-top: 24px;
+}
+
+.message-inbox h2 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+
+.message-inbox > p:not(.eyebrow) {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+
+/* Payment form */
+
+.payment-update-form {
+  display: grid;
+
+  grid-template-columns:
+    minmax(180px, 1fr)
+    minmax(130px, 1fr)
+    minmax(130px, 1fr)
+    auto;
+
+  gap: 14px;
+
+  align-items: center;
+
+  background: #f8fafc;
+  border: 1px solid #e3eaf4;
+  border-radius: 10px;
+
+  padding: 18px;
+  margin-top: 18px;
+}
+
+.payment-update-form strong {
+  color: #172033;
+  font-size: 14px;
+}
+
+.payment-update-form input {
+  width: 100%;
+
+  border: 1px solid #c6d1df;
+  border-radius: 8px;
+
+  background: #fff;
+
+  font: inherit;
+
+  padding: 11px;
+
+  box-sizing: border-box;
+}
+
+.payment-update-form p {
+  grid-column: span 1;
+
+  margin: 0;
+
+  font-size: 13px;
+
+  color: var(--muted);
+}
+
+.payment-update-form button {
+  background: var(--blue);
+
+  border: 0;
+  border-radius: 8px;
+
+  color: #fff;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-weight: 700;
+
+  padding: 11px 15px;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================
+   TRACKING UPDATE
+========================================= */
+
+.tracking-update-form {
+  background: #f8fafc;
+
+  border: 1px solid #e3eaf4;
+  border-radius: 10px;
+
+  padding: 22px;
+
+  margin-top: 20px;
+}
+
+
+/* Tracking number header */
+
+.tracking-number {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+
+  border-bottom: 1px solid #dfe8f5;
+}
+
+.tracking-number span {
+  color: var(--muted);
+
+  font-size: 12px;
+  font-weight: 600;
+
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.tracking-number strong {
+  color: #172033;
+
+  font-size: 16px;
+}
+
+
+/* Tracking input layout */
+
+.tracking-fields {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 18px;
+}
+
+.tracking-update-form label {
+  display: grid;
+
+  gap: 7px;
+
+  color: #344054;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tracking-update-form input,
+.tracking-update-form select {
+  box-sizing: border-box;
+
+  width: 100%;
+}
+
+.tracking-update-form button {
+  background: var(--blue);
+
+  border: 0;
+  border-radius: 8px;
+
+  color: #fff;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-weight: 700;
+
+  padding: 13px 18px;
+
+  margin-top: 20px;
+}
+
+
+/* =========================================
+   CUSTOMER MESSAGES
+========================================= */
+
+.message-card {
+  background: #f8fafc;
+
+  border: 1px solid #e3eaf4;
+  border-radius: 10px;
+
+  padding: 20px;
+
+  margin-top: 18px;
+}
+
+.message-card p {
+  line-height: 1.6;
+}
+
+.message-card a {
+  color: var(--blue);
+}
+
+.message-tracking {
+  color: var(--blue) !important;
+
+  font-weight: 700;
+}
+
+
+/* Admin reply */
+
+.admin-reply {
+  background: #ecfdf5;
+
+  border-left: 4px solid #22c55e;
+
+  border-radius: 8px;
+
+  padding: 14px;
+
+  margin-top: 15px;
+}
+
+
+/* Reply form */
+
+.reply-form {
+  display: grid;
+
+  gap: 12px;
+
+  margin-top: 18px;
+}
+
+.reply-form textarea {
+  min-height: 100px;
+
+  border: 1px solid #c6d1df;
+  border-radius: 8px;
+
+  font: inherit;
+
+  padding: 12px;
+
+  resize: vertical;
+}
+
+.reply-form button {
+  justify-self: start;
+
+  background: var(--blue);
+
+  border: 0;
+  border-radius: 8px;
+
+  color: #fff;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-weight: 700;
+
+  padding: 12px 18px;
+}
+
+
+/* =========================================
+   FOCUS EFFECTS
+========================================= */
+
+.admin-form input:focus,
+.shipment-form input:focus,
+.shipment-form textarea:focus,
+.shipment-form select:focus,
+.payment-update-form input:focus,
+.tracking-update-form input:focus,
+.tracking-update-form select:focus,
+.reply-form textarea:focus {
+  outline: none;
+
+  border-color: var(--blue);
+
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+
+/* Button hover */
+
+.payment-update-form button:hover,
+.tracking-update-form button:hover,
+.reply-form button:hover,
+.admin-form button:hover,
+.shipment-form button:hover {
+  filter: brightness(.95);
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 900px) {
+
+  .payment-update-form {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .tracking-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .shipment-row {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+
+@media (max-width: 760px) {
+
+  .payment-update-form {
+    grid-template-columns: 1fr;
+  }
+
+  .message-inbox {
+    padding: 20px;
+  }
+
+  .shipment-row {
+    gap: 10px;
+  }
+
+  .tracking-update-form {
+    padding: 18px;
+  }
+
+}

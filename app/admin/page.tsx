@@ -19,6 +19,7 @@ import {
   listShipments,
   replyToCustomerMessage,
   updateShipmentLocation,
+  updateShipmentPayment,
 } from "@/lib/database";
 import {
   sendShipmentUpdateEmail,
@@ -181,14 +182,36 @@ packageImage =
 } // <-- ADD THIS CLOSING BRACKET
 
 /* Payment information */
-
 const shippingCost = String(
   data.get("shippingCost") ?? ""
+).trim();
+
+const amountPaid = String(
+  data.get("amountPaid") ?? "0"
 ).trim();
 
 const paymentStatus = String(
   data.get("paymentStatus") ?? "Pending"
 ).trim();
+
+
+
+const shippingCostNumber =
+  Number(shippingCost.replace(/[^0-9.]/g, "")) || 0;
+
+const amountPaidNumber =
+  Number(amountPaid.replace(/[^0-9.]/g, "")) || 0;
+
+const remainingBalance = String(
+  Math.max(0, shippingCostNumber - amountPaidNumber)
+);
+
+const calculatedPaymentStatus =
+  remainingBalance === "0"
+    ? "Fully paid"
+    : amountPaidNumber > 0
+    ? "Partially paid"
+    : "Pending";
 
   /* Validate required fields */
 
@@ -248,12 +271,12 @@ await createShipment({
   currentLocation: origin,
   estimatedDelivery: "To be confirmed",
   packageImage,
-
-  shippingCost,
-  paymentStatus,
-
-  createdAt,
-  updatedAt,
+shippingCost,
+amountPaid,
+remainingBalance,
+paymentStatus: calculatedPaymentStatus,
+createdAt,
+updatedAt,
 });
 
   /* Create first tracking event */
@@ -361,6 +384,43 @@ for (const email of subscribers) {
   );
 }
 
+async function updatePayment(data: FormData) {
+  "use server";
+
+  if (!(await isAdmin())) {
+    redirect("/admin");
+  }
+
+  const trackingNumber = String(
+    data.get("trackingNumber") ?? ""
+  ).trim();
+
+  const shippingCost = String(
+    data.get("shippingCost") ?? ""
+  ).trim();
+
+  const amountPaid = String(
+    data.get("amountPaid") ?? ""
+  ).trim();
+
+  if (!trackingNumber || !shippingCost || !amountPaid) {
+    redirect("/admin?error=payment-details");
+  }
+
+  await updateShipmentPayment(
+    trackingNumber,
+    shippingCost,
+    amountPaid
+  );
+
+  revalidatePath("/admin");
+  revalidatePath("/track");
+
+  redirect("/admin?paymentUpdated=1");
+}
+
+
+
 async function removeShipment(data: FormData) {
   "use server";
 
@@ -455,6 +515,7 @@ export default async function AdminPage(
   error,
   created,
   locationUpdated,
+  paymentUpdated,
   replied,
   deleted,
 } = await props.searchParams;
@@ -591,6 +652,11 @@ const messages = await listCustomerMessages();
     Location and timeline updated.
   </p>
 )}
+{paymentUpdated === "1" && (
+  <p className="success-message">
+    Payment information updated successfully.
+  </p>
+)}
 
 {replied === "1" && (
   <p className="success-message">
@@ -623,7 +689,6 @@ const messages = await listCustomerMessages();
         <form
   action={addShipment}
   className="shipment-form"
-  encType="multipart/form-data"
 >
 
           <h2>
@@ -802,47 +867,43 @@ const messages = await listCustomerMessages();
 </label>
 
 
-          <p className="eyebrow">
-            PAYMENT INFORMATION
-          </p>
+         <p className="eyebrow">
+  PAYMENT INFORMATION
+</p>
 
+<label>
+  Total shipping cost
 
-          <label>
-            Shipping cost
+  <input
+    name="shippingCost"
+    placeholder="Example: $150"
+    required
+  />
+</label>
 
-            <input
-              name="shippingCost"
-              placeholder="Example: $150"
-              required
-            />
+<label>
+  Amount paid
 
-          </label>
+  <input
+    name="amountPaid"
+    placeholder="Example: $50"
+    defaultValue="0"
+    required
+  />
+</label>
 
+<label>
+  Payment status
 
-          <label>
-            Payment status
-
-            <select
-              name="paymentStatus"
-              defaultValue="Pending"
-            >
-
-              <option>
-                Pending
-              </option>
-
-              <option>
-                Paid
-              </option>
-
-              <option>
-                Partially paid
-              </option>
-
-            </select>
-
-          </label>
-
+  <select
+    name="paymentStatus"
+    defaultValue="Pending"
+  >
+    <option>Pending</option>
+    <option>Partially paid</option>
+    <option>Fully paid</option>
+  </select>
+</label>
 
           <button>
             Create shipment
@@ -907,6 +968,82 @@ const messages = await listCustomerMessages();
       </section>
 
 
+         {/* Payment management */}
+
+<section className="message-inbox">
+
+  <p className="eyebrow">
+    PAYMENT MANAGEMENT
+  </p>
+
+  <h2>
+    Update shipment payment
+  </h2>
+
+  <p>
+    Update the shipping cost and amount paid.
+    The remaining balance and payment status
+    will be calculated automatically.
+  </p>
+
+  {shipments.map((shipment) => (
+
+    <form
+      action={updatePayment}
+      className="payment-update-form"
+      key={shipment.trackingNumber}
+    >
+
+      <strong>
+        {shipment.trackingNumber}
+      </strong>
+
+      <input
+        type="hidden"
+        name="trackingNumber"
+        value={shipment.trackingNumber}
+      />
+
+      <input
+        name="shippingCost"
+        defaultValue={shipment.shippingCost}
+        placeholder="Total shipping cost"
+        required
+      />
+
+      <input
+        name="amountPaid"
+        defaultValue={shipment.amountPaid}
+        placeholder="Amount paid"
+        required
+      />
+
+      <p>
+        Remaining balance:{" "}
+        <strong>
+          {shipment.remainingBalance}
+        </strong>
+      </p>
+
+      <p>
+        Payment status:{" "}
+        <strong>
+          {shipment.paymentStatus}
+        </strong>
+      </p>
+
+      <button>
+        Update payment
+      </button>
+
+    </form>
+
+  ))}
+
+</section>
+
+
+
       {/* Tracking update */}
 
       <section className="message-inbox">
@@ -930,92 +1067,80 @@ const messages = await listCustomerMessages();
 
         {shipments.map((shipment) => (
 
-          <form
-            action={updateLocation}
-            className="location-form"
-            key={
-              shipment.trackingNumber
-            }
-          >
+            <form
+  action={updateLocation}
+  className="tracking-update-form"
+  key={shipment.trackingNumber}
+>
+  <div className="tracking-number">
+    <span>Tracking number</span>
 
-            <strong>
-              {
-                shipment.trackingNumber
-              }
-            </strong>
+    <strong>
+      {shipment.trackingNumber}
+    </strong>
+  </div>
 
+  <input
+    type="hidden"
+    name="trackingNumber"
+    value={shipment.trackingNumber}
+  />
 
-            <input
-              type="hidden"
-              name="trackingNumber"
-              value={
-                shipment.trackingNumber
-              }
-            />
+  <div className="tracking-fields">
 
+    <label>
+      Shipment status
 
-            <select
-              name="status"
-              defaultValue={
-                shipment.status
-              }
-            >
+      <select
+        name="status"
+        defaultValue={shipment.status}
+      >
+        <option>Shipment created</option>
+        <option>In transit</option>
+        <option>At local hub</option>
+        <option>Out for delivery</option>
+        <option>Delivered</option>
+      </select>
+    </label>
 
-              <option>
-                Shipment created
-              </option>
+    <label>
+      Current location
 
-              <option>
-                In transit
-              </option>
+      <input
+        name="location"
+        defaultValue={shipment.currentLocation}
+        placeholder="Current city or hub"
+        required
+      />
+    </label>
 
-              <option>
-                At local hub
-              </option>
+    <label>
+      Estimated delivery
 
-              <option>
-                Out for delivery
-              </option>
+      <input
+        name="estimatedDelivery"
+        defaultValue={shipment.estimatedDelivery}
+        placeholder="Estimated delivery"
+        required
+      />
+    </label>
 
-              <option>
-                Delivered
-              </option>
+    <label>
+      Update note
 
-            </select>
+      <input
+        name="note"
+        placeholder="Tracking update note"
+      />
+    </label>
 
+  </div>
 
-            <input
-              name="location"
-              defaultValue={
-                shipment.currentLocation
-              }
-              placeholder="Current city or hub"
-              required
-            />
+  <button type="submit">
+    Update tracking
+  </button>
 
-
-            <input
-              name="estimatedDelivery"
-              defaultValue={
-                shipment.estimatedDelivery
-              }
-              placeholder="Estimated delivery"
-              required
-            />
-
-
-            <input
-              name="note"
-              placeholder="Tracking update note"
-            />
-
-
-            <button>
-              Update tracking
-            </button>
-
-          </form>
-
+</form>
         ))}
 
       </section>

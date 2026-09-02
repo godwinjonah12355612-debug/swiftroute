@@ -23,9 +23,11 @@ export type Shipment = {
   currentLocation: string;
   estimatedDelivery: string;
   packageImage: string;
-
+    
   shippingCost: string;
-  paymentStatus: string;
+amountPaid: string;
+remainingBalance: string;
+paymentStatus: string;
 
   createdAt: string;
   updatedAt: string;
@@ -81,9 +83,11 @@ function mapShipment(row: Record<string, unknown>): Shipment {
     currentLocation: String(row.current_location ?? ""),
     estimatedDelivery: String(row.estimated_delivery ?? ""),
     packageImage: String(row.package_image ?? ""),
-
+     
     shippingCost: String(row.shipping_cost ?? ""),
-    paymentStatus: String(row.payment_status ?? ""),
+amountPaid: String(row.amount_paid ?? "0"),
+remainingBalance: String(row.remaining_balance ?? "0"),
+paymentStatus: String(row.payment_status ?? ""),
 
     createdAt: String(row.created_at ?? ""),
     updatedAt: String(row.updated_at ?? ""),
@@ -199,8 +203,10 @@ export async function createShipment(
       estimated_delivery: shipment.estimatedDelivery,
       package_image: shipment.packageImage,
 
-      shipping_cost: shipment.shippingCost,
-      payment_status: shipment.paymentStatus,
+       shipping_cost: shipment.shippingCost,
+amount_paid: shipment.amountPaid,
+remaining_balance: shipment.remainingBalance,
+payment_status: shipment.paymentStatus,
 
       created_at: shipment.createdAt,
       updated_at: shipment.updatedAt,
@@ -252,6 +258,51 @@ export async function updateShipmentLocation(
 
   return true;
 }
+
+
+
+export async function updateShipmentPayment(
+  trackingNumber: string,
+  shippingCost: string,
+  amountPaid: string
+) {
+  const shippingCostNumber =
+    Number(shippingCost.replace(/[^0-9.]/g, "")) || 0;
+
+  const amountPaidNumber =
+    Number(amountPaid.replace(/[^0-9.]/g, "")) || 0;
+
+  const remainingBalance = String(
+    Math.max(0, shippingCostNumber - amountPaidNumber)
+  );
+
+  const paymentStatus =
+    Number(remainingBalance) === 0 && shippingCostNumber > 0
+      ? "Fully paid"
+      : amountPaidNumber > 0
+      ? "Partially paid"
+      : "Pending";
+
+  const { error } = await supabase
+    .from("shipments")
+    .update({
+      shipping_cost: shippingCost,
+      amount_paid: amountPaid,
+      remaining_balance: remainingBalance,
+      payment_status: paymentStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("tracking_number", trackingNumber);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return true;
+}
+
+
+
 
 /* ----------------------------------
    TRACKING EVENTS
@@ -414,7 +465,7 @@ export async function getShipmentSubscribers(
 ): Promise<string[]> {
   const { data, error } = await supabase
     .from("shipments")
-    .select("customer_email, receiver_email")
+    .select("receiver_email")
     .eq("tracking_number", trackingNumber)
     .maybeSingle();
 
@@ -422,20 +473,9 @@ export async function getShipmentSubscribers(
     throw new Error(error.message);
   }
 
-  if (!data) {
+  if (!data?.receiver_email?.trim()) {
     return [];
   }
 
-  return [
-    data.customer_email,
-    data.receiver_email,
-  ]
-    .filter(
-      (email): email is string =>
-        Boolean(email?.trim())
-    )
-    .filter(
-      (email, index, emails) =>
-        emails.indexOf(email) === index
-    );
+  return [data.receiver_email.trim()];
 }
