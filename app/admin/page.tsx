@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -62,7 +61,15 @@ async function addShipment(data: FormData) {
 
   /* Sender information */
 
-  const receiverName = String(
+  const customerName = String(
+  data.get("customerName") ?? ""
+).trim();
+
+const customerEmail = String(
+  data.get("customerEmail") ?? ""
+).trim();
+
+const receiverName = String(
   data.get("receiverName") ?? ""
 ).trim();
 
@@ -74,10 +81,6 @@ const receiverEmail = String(
   data.get("receiverEmail") ?? ""
 ).trim();
 
-// The receiver is the customer who receives shipment updates
-const customerName = receiverName;
-const customerEmail = receiverEmail;
-
 const senderPhone = String(
   data.get("senderPhone") ?? ""
 ).trim();
@@ -85,12 +88,14 @@ const senderPhone = String(
 const origin = String(
   data.get("origin") ?? ""
 ).trim();
- 
-
 
 const destination = String(
   data.get("destination") ?? ""
 ).trim();
+
+// The receiver is the customer who receives shipment updates
+
+
 
 
   /* Package information */
@@ -141,40 +146,49 @@ if (packageImageFile.type === "image/png") {
   extension = "mov";
 }
 
-  const fileName = `${randomUUID()}.${extension}`;
+const filePath = `${randomUUID()}.${extension}`;
 
-  const uploadDirectory = join(
-    process.cwd(),
-    "public",
-    "uploads"
+const fileBuffer = Buffer.from(
+  await packageImageFile.arrayBuffer()
+);
+
+const { error: uploadError } =
+  await supabaseAdmin.storage
+    .from("package-media")
+    .upload(filePath, fileBuffer, {
+      contentType: packageImageFile.type,
+      upsert: false,
+    });
+
+if (uploadError) {
+  console.error(
+    "Package upload failed:",
+    uploadError
   );
 
-  await mkdir(uploadDirectory, {
-    recursive: true,
-  });
-
-  const buffer = Buffer.from(
-    await packageImageFile.arrayBuffer()
-  );
-
-  await writeFile(
-    join(uploadDirectory, fileName),
-    buffer
-  );
-
-  packageImage = `/uploads/${fileName}`;
+  redirect("/admin?error=upload-failed");
 }
 
-  /* Payment information */
+const {
+  data: publicUrlData,
+} = supabaseAdmin.storage
+  .from("package-media")
+  .getPublicUrl(filePath);
 
-  const shippingCost = String(
-    data.get("shippingCost") ?? ""
-  ).trim();
+packageImage =
+  publicUrlData.publicUrl;
 
-  const paymentStatus = String(
-    data.get("paymentStatus") ?? "Pending"
-  ).trim();
+} // <-- ADD THIS CLOSING BRACKET
 
+/* Payment information */
+
+const shippingCost = String(
+  data.get("shippingCost") ?? ""
+).trim();
+
+const paymentStatus = String(
+  data.get("paymentStatus") ?? "Pending"
+).trim();
 
   /* Validate required fields */
 
@@ -212,8 +226,8 @@ if (packageImageFile.type === "image/png") {
 const updatedAt = createdAt;
 await createShipment({
   trackingNumber,
-  customerName: receiverName,
-  customerEmail: receiverEmail,
+  customerName,
+  customerEmail,
 
   senderPhone,
 
@@ -303,8 +317,7 @@ async function updateLocation(
  const updateNote =
   note || "Shipment location updated.";
 
-updateShipmentLocation(
-  trackingNumber,
+await updateShipmentLocation(  trackingNumber,
   status,
   location,
   estimatedDelivery,
@@ -363,8 +376,7 @@ async function removeShipment(data: FormData) {
     redirect("/admin?error=delete-failed");
   }
 
-  const deleted = deleteShipment(trackingNumber);
-
+const deleted = await deleteShipment(trackingNumber);
   if (!deleted) {
     redirect("/admin?error=delete-failed");
   }
@@ -417,7 +429,7 @@ async function reply(data: FormData) {
       reply: text,
     });
 
-    replyToCustomerMessage(
+await replyToCustomerMessage(  
       id,
       text
     );
@@ -566,28 +578,6 @@ const messages = await listCustomerMessages();
       {/* Messages */}
 
       {created && (
-        <p className="success-message">
-          Shipment created:{" "}
-          <strong>
-            {created}
-          </strong>
-        </p>
-      )}
-
-
-      {locationUpdated === "1" && (
-        <p className="success-message">
-          Location and timeline updated.
-        </p>
-      )}
-
-
-      {replied === "1" && (
-        <p className="success-message">
-          Reply saved.
-        </p>
-      )}
-      {created && (
   <p className="success-message">
     Shipment created:{" "}
     <strong>
@@ -633,6 +623,7 @@ const messages = await listCustomerMessages();
         <form
   action={addShipment}
   className="shipment-form"
+  encType="multipart/form-data"
 >
 
           <h2>

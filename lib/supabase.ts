@@ -1,12 +1,8 @@
-import "server-only";
-
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-const supabaseSecretKey =
-  process.env.SUPABASE_SECRET_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 if (!supabaseUrl) {
   throw new Error(
@@ -14,19 +10,13 @@ if (!supabaseUrl) {
   );
 }
 
-if (!supabaseSecretKey) {
+if (!supabaseKey) {
   throw new Error(
-    "Missing SUPABASE_SECRET_KEY"
+    "Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
   );
 }
 
-export const supabaseAdmin = createClient(
+export const supabase = createClient(
   supabaseUrl,
-  supabaseSecretKey,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
+  supabaseKey
 );
