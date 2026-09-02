@@ -26,8 +26,7 @@ async function sendMessage(formData: FormData) {
     formData.get("message") ?? ""
   ).trim();
 
-  const shipment = getShipment(trackingNumber);
-
+const shipment = await getShipment(trackingNumber);
   if (!shipment) {
     redirect("/contact?error=shipment-not-found");
   }
