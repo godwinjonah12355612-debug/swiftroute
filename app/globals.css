@@ -211,6 +211,8 @@
 
 html {
   scroll-behavior: smooth;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -218,6 +220,10 @@ body {
   background: #fff;
   color: var(--ink);
   font-family: Arial, Helvetica, sans-serif;
+
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 a {
@@ -229,6 +235,11 @@ a {
   overflow: hidden;
 }
 
+input,
+textarea,
+select {
+  font-size: 16px !important;
+}
 /* =========================
    NAVIGATION
 ========================= */
@@ -3078,4 +3089,145 @@ footer {
     padding: 18px;
   }
 
+}
+
+/* ========================================
+   TRACKING BENEFITS SECTION
+======================================== */
+
+.tracking-benefits {
+  width: 100%;
+  padding: 100px 24px;
+  background: #f5f8fc;
+}
+
+.benefits-content {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.tracking-benefits .eyebrow {
+  margin: 0 0 16px;
+  color: #3564b8;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.tracking-benefits h2 {
+  max-width: 650px;
+  margin: 0 0 20px;
+  color: #172033;
+  font-size: clamp(32px, 4vw, 50px);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.benefits-content > p {
+  max-width: 720px;
+  margin: 0 0 42px;
+  color: #667085;
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+/* BENEFIT CARDS */
+
+.benefit-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.benefit-item {
+  min-width: 0;
+  padding: 28px;
+  background: #ffffff;
+  border: 1px solid #dfe8f5;
+  border-radius: 20px;
+  box-shadow: 0 12px 35px rgba(23, 32, 51, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.benefit-item:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 45px rgba(23, 32, 51, 0.12);
+}
+
+/* ICON */
+
+.benefit-item > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 22px;
+  border-radius: 16px;
+  background: #eef4ff;
+  font-size: 28px;
+}
+
+/* TEXT */
+
+.benefit-item h3 {
+  margin: 0 0 10px;
+  color: #172033;
+  font-size: 21px;
+  line-height: 1.3;
+}
+
+.benefit-item p {
+  margin: 0;
+  color: #667085;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+/* ========================================
+   MOBILE
+======================================== */
+
+@media (max-width: 760px) {
+  .tracking-benefits {
+    width: 100%;
+    padding: 70px 20px;
+    overflow: hidden;
+  }
+
+  .benefits-content {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .tracking-benefits h2 {
+    max-width: 100%;
+    font-size: 34px;
+    line-height: 1.15;
+  }
+
+  .benefits-content > p {
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  .benefit-list {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .benefit-item {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 24px;
+  }
+
+  .benefit-item h3,
+  .benefit-item p {
+    overflow-wrap: break-word;
+  }
 }

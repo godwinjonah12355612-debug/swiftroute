@@ -115,9 +115,9 @@ return (
 
   <p className="last-updated">
     🕒 Last updated:{" "}
-    {shipment.updatedAt
-      ? new Date(shipment.updatedAt).toLocaleString()
-      : "Not available"}
+   {shipment.updatedAt
+  ? new Date(shipment.updatedAt).toLocaleString("en-GB")
+  : "Not available"}
   </p>
 </div>
 
@@ -319,11 +319,11 @@ return (
                     <div className="timeline-top">
                       <strong>{event.status}</strong>
 
-                      <span>
-                        {new Date(
-                          event.createdAt
-                        ).toLocaleString()}
-                      </span>
+                       <span>
+                      {new Date(
+                        event.createdAt
+                        ).toLocaleString("en-GB")}
+                         </span>
                     </div>
 
                     <p className="timeline-location">
