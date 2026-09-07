@@ -1025,12 +1025,19 @@ const messages = await listCustomerMessages();
         </strong>
       </p>
 
-      <p>
-        Payment status:{" "}
-        <strong>
-          {shipment.paymentStatus}
-        </strong>
-      </p>
+      <label>
+  Payment status
+
+  <select
+    name="paymentStatus"
+    defaultValue={shipment.paymentStatus}
+    required
+  >
+    <option>Pending</option>
+    <option>Partially paid</option>
+    <option>Fully paid</option>
+  </select>
+</label>
 
       <button>
         Update payment

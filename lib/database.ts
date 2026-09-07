@@ -260,11 +260,11 @@ export async function updateShipmentLocation(
 }
 
 
-
 export async function updateShipmentPayment(
   trackingNumber: string,
   shippingCost: string,
-  amountPaid: string
+  amountPaid: string,
+  paymentStatus: string
 ) {
   const shippingCostNumber =
     Number(shippingCost.replace(/[^0-9.]/g, "")) || 0;
@@ -275,13 +275,6 @@ export async function updateShipmentPayment(
   const remainingBalance = String(
     Math.max(0, shippingCostNumber - amountPaidNumber)
   );
-
-  const paymentStatus =
-    Number(remainingBalance) === 0 && shippingCostNumber > 0
-      ? "Fully paid"
-      : amountPaidNumber > 0
-      ? "Partially paid"
-      : "Pending";
 
   const { error } = await supabase
     .from("shipments")
@@ -300,8 +293,6 @@ export async function updateShipmentPayment(
 
   return true;
 }
-
-
 
 
 /* ----------------------------------
