@@ -1092,15 +1092,16 @@ const messages = await listCustomerMessages();
       Shipment status
 
       <select
-        name="status"
-        defaultValue={shipment.status}
-      >
-        <option>Shipment created</option>
-        <option>In transit</option>
-        <option>At local hub</option>
-        <option>Out for delivery</option>
-        <option>Delivered</option>
-      </select>
+  name="status"
+  defaultValue={shipment.status}
+>
+  <option>Shipment created</option>
+  <option>In transit</option>
+  <option>Hold</option>
+  <option>At local hub</option>
+  <option>Out for delivery</option>
+  <option>Delivered</option>
+</select>
     </label>
 
     <label>

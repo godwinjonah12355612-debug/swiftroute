@@ -11,6 +11,7 @@ type Props = {
 const progressSteps = [
   "Shipment created",
   "In transit",
+  "Hold",
   "At local hub",
   "Out for delivery",
   "Delivered",
@@ -84,6 +85,7 @@ return (
           <div className="progress-tracker">
             {progressSteps.map((step, index) => {
               const completed = index <= currentStep;
+const isHold = step.trim().toLowerCase() === "hold";
 
               return (
                 <div
@@ -94,8 +96,8 @@ return (
                 >
                   <div
   className={`progress-circle progress-color-${index + 1} ${
-    completed ? "completed" : ""
-  }`}
+  completed ? "completed" : ""
+} ${isHold ? "hold-circle" : ""}`}
 >
   {completed ? "✓" : index + 1}
 </div>

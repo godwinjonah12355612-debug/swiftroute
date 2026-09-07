@@ -1035,6 +1035,7 @@ footer {
 }
 
 /* Shipment created - Blue */
+/* Shipment created - Blue */
 .progress-circle.progress-color-1.completed {
   background: #2563eb;
   box-shadow: 0 0 0 1px #2563eb;
@@ -1046,25 +1047,29 @@ footer {
   box-shadow: 0 0 0 1px #7c3aed;
 }
 
-/* At local hub - Teal */
+/* Hold - Red */
 .progress-circle.progress-color-3.completed {
+  background: #dc2626 !important;
+  box-shadow: 0 0 0 1px #dc2626 !important;
+}
+
+/* At local hub - Teal */
+.progress-circle.progress-color-4.completed {
   background: #0891b2;
   box-shadow: 0 0 0 1px #0891b2;
 }
 
 /* Out for delivery - Orange */
-.progress-circle.progress-color-4.completed {
+.progress-circle.progress-color-5.completed {
   background: #f59e0b;
   box-shadow: 0 0 0 1px #f59e0b;
 }
 
 /* Delivered - Green */
-.progress-circle.progress-color-5.completed {
+.progress-circle.progress-color-6.completed {
   background: #16a34a;
   box-shadow: 0 0 0 1px #16a34a;
 }
-
-
 /* =========================================
    MOBILE PHONE
 ========================================= */
@@ -2244,10 +2249,10 @@ footer {
 }
 
 /* At local hub - Teal */
-.progress-circle.progress-color-3.completed {
-  background: #0891b2 !important;
-  border-color: #0891b2 !important;
-  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.25);
+/* At local hub - Teal */
+.progress-circle.progress-color-4.completed {
+  background: #0891b2;
+  box-shadow: 0 0 0 1px #0891b2;
 }
 
 /* Out for delivery - Orange */
@@ -3230,4 +3235,10 @@ footer {
   .benefit-item p {
     overflow-wrap: break-word;
   }
+}
+
+.hold-circle {
+  background-color: red !important;
+  border-color: red !important;
+  color: white !important;
 }
