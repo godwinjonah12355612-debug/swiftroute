@@ -402,16 +402,20 @@ async function updatePayment(data: FormData) {
   const amountPaid = String(
     data.get("amountPaid") ?? ""
   ).trim();
+const paymentStatus = String(
+  data.get("paymentStatus") ?? ""
+).trim();
 
-  if (!trackingNumber || !shippingCost || !amountPaid) {
+if (!trackingNumber || !shippingCost || !amountPaid || !paymentStatus) {    
     redirect("/admin?error=payment-details");
   }
 
   await updateShipmentPayment(
-    trackingNumber,
-    shippingCost,
-    amountPaid
-  );
+  trackingNumber,
+  shippingCost,
+  amountPaid,
+  paymentStatus
+);
 
   revalidatePath("/admin");
   revalidatePath("/track");
