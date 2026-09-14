@@ -1046,13 +1046,18 @@ footer {
   background: #7c3aed;
   box-shadow: 0 0 0 1px #7c3aed;
 }
-
-/* Hold - Red */
+/* Hold - Grey by default */
 .progress-circle.progress-color-3.completed {
-  background: #dc2626 !important;
-  box-shadow: 0 0 0 1px #dc2626 !important;
+  background: #e5e7eb !important;
+  box-shadow: 0 0 0 1px #d1d5db !important;
 }
 
+/* Hold - Red only when shipment is actually on hold */
+.progress-circle.progress-color-3.hold-circle {
+  background: #dc2626 !important;
+  box-shadow: 0 0 0 1px #dc2626 !important;
+  color: #ffffff !important;
+}
 /* At local hub - Teal */
 .progress-circle.progress-color-4.completed {
   background: #0891b2;
@@ -3237,8 +3242,8 @@ footer {
   }
 }
 
-.hold-circle {
+/* .hold-circle {
   background-color: red !important;
   border-color: red !important;
   color: white !important;
-}
+} */

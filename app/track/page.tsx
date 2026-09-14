@@ -85,7 +85,9 @@ return (
           <div className="progress-tracker">
             {progressSteps.map((step, index) => {
               const completed = index <= currentStep;
-const isHold = step.trim().toLowerCase() === "hold";
+const isHold =
+  step.trim().toLowerCase() === "hold" &&
+  shipment.status?.trim().toLowerCase() === "hold";
 
               return (
                 <div
