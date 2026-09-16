@@ -3242,6 +3242,20 @@ footer {
   }
 }
 
+
+.status-pill.status-hold {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+  border: 1px solid #fecaca;
+}
+.hold-text {
+  color: #dc2626 !important;
+}
+.timeline-number.timeline-hold {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
 /* .hold-circle {
   background-color: red !important;
   border-color: red !important;

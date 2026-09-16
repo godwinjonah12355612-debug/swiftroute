@@ -125,7 +125,13 @@ const isHold =
   </p>
 </div>
 
-<span className="status-pill">
+<span
+  className={`status-pill ${
+    shipment.status?.trim().toLowerCase() === "hold"
+      ? "status-hold"
+      : ""
+  }`}
+>
   {shipment.status}
 </span>
 </div>
@@ -150,9 +156,17 @@ const isHold =
 </div>
 
             <div>
-              <span>Current status</span>
-              <strong>{shipment.status}</strong>
-            </div>
+  <span>Current status</span>
+  <strong
+    className={
+      shipment.status?.trim().toLowerCase() === "hold"
+        ? "hold-text"
+        : ""
+    }
+  >
+    {shipment.status}
+  </strong>
+</div>
 
             <div>
               <span>Origin</span>
@@ -314,9 +328,15 @@ const isHold =
                   className="timeline-item"
                   key={event.id}
                 >
-                  <div className="timeline-number">
-                    ✓
-                  </div>
+                  <div
+  className={`timeline-number ${
+    event.status?.trim().toLowerCase() === "hold"
+      ? "timeline-hold"
+      : ""
+  }`}
+>
+  ✓
+</div>
 
                   <div className="timeline-content">
 
