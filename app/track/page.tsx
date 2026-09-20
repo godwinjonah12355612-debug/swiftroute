@@ -373,21 +373,33 @@ const isHold =
     <div>
       <span>Total shipping cost</span>
       <strong>
-        {shipment.shippingCost || "Not specified"}
+        {shipment.shippingCost
+          ? `${shipment.paymentCurrency === "EUR" ? "€" : "$"}${String(
+              shipment.shippingCost
+            ).replace(/[$€]/g, "")} ${shipment.paymentCurrency || "USD"}`
+          : "Not specified"}
       </strong>
     </div>
 
     <div>
       <span>Amount paid</span>
       <strong>
-        {shipment.amountPaid || "0"}
+        {shipment.amountPaid
+          ? `${shipment.paymentCurrency === "EUR" ? "€" : "$"}${String(
+              shipment.amountPaid
+            ).replace(/[$€]/g, "")} ${shipment.paymentCurrency || "USD"}`
+          : "0"}
       </strong>
     </div>
 
     <div>
       <span>Remaining balance</span>
       <strong>
-        {shipment.remainingBalance || "0"}
+        {shipment.remainingBalance
+          ? `${shipment.paymentCurrency === "EUR" ? "€" : "$"}${String(
+              shipment.remainingBalance
+            ).replace(/[$€]/g, "")} ${shipment.paymentCurrency || "USD"}`
+          : "0"}
       </strong>
     </div>
 
@@ -398,7 +410,7 @@ const isHold =
       </strong>
     </div>
   </div>
-</section>       
+</section>
  <p className="disclaimer">
   Please contact SwiftRoute support if you have questions about
   shipment payment information.

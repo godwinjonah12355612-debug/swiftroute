@@ -24,10 +24,12 @@ export type Shipment = {
   estimatedDelivery: string;
   packageImage: string;
     
-  shippingCost: string;
+ shippingCost: string;
 amountPaid: string;
 remainingBalance: string;
 paymentStatus: string;
+paymentCurrency: string;
+
 
   createdAt: string;
   updatedAt: string;
@@ -83,12 +85,11 @@ function mapShipment(row: Record<string, unknown>): Shipment {
     currentLocation: String(row.current_location ?? ""),
     estimatedDelivery: String(row.estimated_delivery ?? ""),
     packageImage: String(row.package_image ?? ""),
-     
     shippingCost: String(row.shipping_cost ?? ""),
 amountPaid: String(row.amount_paid ?? "0"),
 remainingBalance: String(row.remaining_balance ?? "0"),
 paymentStatus: String(row.payment_status ?? ""),
-
+paymentCurrency: String(row.payment_currency ?? "USD"),
     createdAt: String(row.created_at ?? ""),
     updatedAt: String(row.updated_at ?? ""),
   };
@@ -203,10 +204,11 @@ export async function createShipment(
       estimated_delivery: shipment.estimatedDelivery,
       package_image: shipment.packageImage,
 
-       shipping_cost: shipment.shippingCost,
+      shipping_cost: shipment.shippingCost,
 amount_paid: shipment.amountPaid,
 remaining_balance: shipment.remainingBalance,
 payment_status: shipment.paymentStatus,
+payment_currency: shipment.paymentCurrency,
 
       created_at: shipment.createdAt,
       updated_at: shipment.updatedAt,
@@ -298,25 +300,36 @@ export async function updateShipmentPayment(
 /* ----------------------------------
    TRACKING EVENTS
 ---------------------------------- */
-
 export async function createTrackingEvent(
   event: Omit<TrackingEvent, "id">
 ) {
-  const { error } = await supabase
-    .from("tracking_events")
-    .insert({
-      tracking_number: event.trackingNumber,
-      status: event.status,
-      location: event.location,
-      note: event.note,
-      created_at: event.createdAt,
-    });
+  try {
+    const { error } = await supabase
+      .from("tracking_events")
+      .insert({
+        tracking_number: event.trackingNumber,
+        status: event.status,
+        location: event.location,
+        note: event.note,
+        created_at: event.createdAt,
+      });
 
-  if (error) {
-    throw new Error(error.message);
+    if (error) {
+      console.error("Supabase tracking event error:", error);
+      throw new Error(error.message);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("CREATE TRACKING EVENT FAILED:", error);
+
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Error cause:", error.cause);
+    }
+
+    throw error;
   }
-
-  return true;
 }
 
 export async function listTrackingEvents(

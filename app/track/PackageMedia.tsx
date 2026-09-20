@@ -10,33 +10,58 @@ type Props = {
 export default function PackageMedia({ src, alt }: Props) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const isVideo =
-    src.toLowerCase().endsWith(".mp4") ||
-    src.toLowerCase().endsWith(".webm") ||
-    src.toLowerCase().endsWith(".mov");
+  // Support multiple media URLs separated by commas
+  const mediaItems = src
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 
+  const isVideo = (url: string) => {
+    const cleanUrl = url.split("?")[0].toLowerCase();
+
+    return (
+      cleanUrl.endsWith(".mp4") ||
+      cleanUrl.endsWith(".webm") ||
+      cleanUrl.endsWith(".mov")
+    );
+  };
+
+  // If there is no media
+  if (mediaItems.length === 0) {
+    return null;
+  }
+
+  // Video
+  if (isVideo(mediaItems[0])) {
+    return (
+      <div className="package-media-container">
+        <video
+          className="package-media"
+          controls
+          preload="metadata"
+        >
+          <source src={mediaItems[0]} />
+          Your browser does not support video playback.
+        </video>
+      </div>
+    );
+  }
+
+  // Photos
   return (
     <>
-      <div className="package-media-container">
-        {isVideo ? (
-          <video
-            className="package-media"
-            controls
-            preload="metadata"
-          >
-            <source src={src} />
-            Your browser does not support video playback.
-          </video>
-        ) : (
+      <div className="package-media-grid">
+        {mediaItems.slice(0, 2).map((image, index) => (
           <button
+            key={image}
             type="button"
             className="package-image-button"
             onClick={() => setIsOpen(true)}
-            aria-label="View package image"
+            aria-label={`View package image ${index + 1}`}
           >
             <img
-              src={src}
-              alt={alt}
+              src={image}
+              alt={`${alt} ${index + 1}`}
               className="package-media"
             />
 
@@ -44,10 +69,10 @@ export default function PackageMedia({ src, alt }: Props) {
               Click to view larger
             </span>
           </button>
-        )}
+        ))}
       </div>
 
-      {isOpen && !isVideo && (
+      {isOpen && (
         <div
           className="media-modal"
           onClick={() => setIsOpen(false)}
@@ -65,11 +90,16 @@ export default function PackageMedia({ src, alt }: Props) {
               ×
             </button>
 
-            <img
-              src={src}
-              alt={alt}
-              className="media-modal-image"
-            />
+            <div className="media-modal-images">
+              {mediaItems.slice(0, 2).map((image, index) => (
+                <img
+                  key={image}
+                  src={image}
+                  alt={`${alt} ${index + 1}`}
+                  className="media-modal-image"
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}

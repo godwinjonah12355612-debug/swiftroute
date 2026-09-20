@@ -112,74 +112,115 @@ const destination = String(
   const packageWeight = String(
     data.get("packageWeight") ?? ""
   ).trim();
-  const packageImageFile = data.get("packageImage");
+  
+  const packageImageFiles = data.getAll("packageImage");
 
 let packageImage = "";
 
-if (
-  packageImageFile instanceof File &&
-  packageImageFile.size > 0
-) {
-  const allowedTypes = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "video/mp4",
-  "video/webm",
-  "video/quicktime",
-];
-
-  if (!allowedTypes.includes(packageImageFile.type)) {
-    redirect("/admin?error=invalid-image");
-  }
-
- let extension = "jpg";
-
-if (packageImageFile.type === "image/png") {
-  extension = "png";
-} else if (packageImageFile.type === "image/webp") {
-  extension = "webp";
-} else if (packageImageFile.type === "video/mp4") {
-  extension = "mp4";
-} else if (packageImageFile.type === "video/webm") {
-  extension = "webm";
-} else if (packageImageFile.type === "video/quicktime") {
-  extension = "mov";
-}
-
-const filePath = `${randomUUID()}.${extension}`;
-
-const fileBuffer = Buffer.from(
-  await packageImageFile.arrayBuffer()
+const validFiles = packageImageFiles.filter(
+  (file): file is File =>
+    file instanceof File && file.size > 0
 );
 
-const { error: uploadError } =
-  await supabaseAdmin.storage
-    .from("package-media")
-    .upload(filePath, fileBuffer, {
-      contentType: packageImageFile.type,
-      upsert: false,
-    });
-
-if (uploadError) {
-  console.error(
-    "Package upload failed:",
-    uploadError
+if (validFiles.length > 0) {
+  const imageFiles = validFiles.filter((file) =>
+    file.type.startsWith("image/")
   );
 
-  redirect("/admin?error=upload-failed");
+  const videoFiles = validFiles.filter((file) =>
+    file.type.startsWith("video/")
+  );
+
+  // Allow either:
+  // - exactly 2 photos
+  // - exactly 1 video
+  // - nothing
+  const validSelection =
+    validFiles.length === 2 &&
+    imageFiles.length === 2 &&
+    videoFiles.length === 0
+      ? true
+      : validFiles.length === 1 &&
+          imageFiles.length === 0 &&
+          videoFiles.length === 1;
+
+  if (!validSelection) {
+    redirect("/admin?error=invalid-media");
+  }
+
+  const allowedImageTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+  ];
+
+  const allowedVideoTypes = [
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
+  ];
+
+  for (const file of validFiles) {
+    if (
+      !allowedImageTypes.includes(file.type) &&
+      !allowedVideoTypes.includes(file.type)
+    ) {
+      redirect("/admin?error=invalid-media");
+    }
+  }
+
+  const uploadedUrls: string[] = [];
+
+  for (const file of validFiles) {
+    let extension = "jpg";
+
+    if (file.type === "image/png") {
+      extension = "png";
+    } else if (file.type === "image/webp") {
+      extension = "webp";
+    } else if (file.type === "video/mp4") {
+      extension = "mp4";
+    } else if (file.type === "video/webm") {
+      extension = "webm";
+    } else if (file.type === "video/quicktime") {
+      extension = "mov";
+    }
+
+    const filePath = `${randomUUID()}.${extension}`;
+
+    const fileBuffer = Buffer.from(
+      await file.arrayBuffer()
+    );
+
+    const { error: uploadError } =
+      await supabaseAdmin.storage
+        .from("package-media")
+        .upload(filePath, fileBuffer, {
+          contentType: file.type,
+          upsert: false,
+        });
+
+    if (uploadError) {
+      console.error(
+        "Package media upload failed:",
+        uploadError
+      );
+
+      redirect("/admin?error=upload-failed");
+    }
+
+    const {
+      data: publicUrlData,
+    } = supabaseAdmin.storage
+      .from("package-media")
+      .getPublicUrl(filePath);
+
+    uploadedUrls.push(publicUrlData.publicUrl);
+  }
+
+  // Store two photo URLs or one video URL.
+  packageImage = uploadedUrls.join(",");
 }
-
-const {
-  data: publicUrlData,
-} = supabaseAdmin.storage
-  .from("package-media")
-  .getPublicUrl(filePath);
-
-packageImage =
-  publicUrlData.publicUrl;
-
-} // <-- ADD THIS CLOSING BRACKET
 
 /* Payment information */
 const shippingCost = String(
@@ -192,6 +233,9 @@ const amountPaid = String(
 
 const paymentStatus = String(
   data.get("paymentStatus") ?? "Pending"
+).trim();
+const paymentCurrency = String(
+  data.get("paymentCurrency") ?? "USD"
 ).trim();
 
 
@@ -275,18 +319,45 @@ shippingCost,
 amountPaid,
 remainingBalance,
 paymentStatus: calculatedPaymentStatus,
+paymentCurrency,
 createdAt,
 updatedAt,
 });
 
   /* Create first tracking event */
-await createTrackingEvent({
-  trackingNumber,
-  status: "Shipment created",
-  location: origin,
-  note: "Shipment record created and awaiting processing.",
-  createdAt,
-});
+let trackingEventCreated = false;
+
+for (let attempt = 1; attempt <= 3; attempt++) {
+  try {
+    await createTrackingEvent({
+      trackingNumber,
+      status: "Shipment created",
+      location: origin,
+      note: "Shipment record created and awaiting processing.",
+      createdAt,
+    });
+
+    trackingEventCreated = true;
+    break;
+  } catch (error) {
+    console.error(
+      `Tracking event creation attempt ${attempt} failed:`,
+      error
+    );
+
+    if (attempt < 3) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000)
+      );
+    }
+  }
+}
+
+if (!trackingEventCreated) {
+  console.error(
+    `Shipment ${trackingNumber} was created, but the initial tracking event could not be created.`
+  );
+}
 
 
   revalidatePath("/track");
@@ -860,14 +931,19 @@ const messages = await listCustomerMessages();
     required
   />
 </label>
-
 <label>
-  Package image
-<input
-  name="packageImage"
-  type="file"
-  accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime"
-/>
+  Package photos or video
+
+  <input
+    name="packageImage"
+    type="file"
+    accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime"
+    multiple
+  />
+
+  <small>
+    Upload either 2 photos or 1 video.
+  </small>
 </label>
 
 
@@ -876,11 +952,24 @@ const messages = await listCustomerMessages();
 </p>
 
 <label>
+  Payment currency
+
+  <select
+    name="paymentCurrency"
+    defaultValue="USD"
+    required
+  >
+    <option value="USD">US Dollar ($)</option>
+    <option value="EUR">Euro (€)</option>
+  </select>
+</label>
+
+<label>
   Total shipping cost
 
   <input
     name="shippingCost"
-    placeholder="Example: $150"
+    placeholder="Example: 150"
     required
   />
 </label>
@@ -890,7 +979,7 @@ const messages = await listCustomerMessages();
 
   <input
     name="amountPaid"
-    placeholder="Example: $50"
+    placeholder="Example: 50"
     defaultValue="0"
     required
   />
