@@ -2,7 +2,7 @@ import { getShipment, listTrackingEvents } from "@/lib/database";
 import PrintButton from "./PrintButton";
 import PackageMedia from "./PackageMedia";
 import CopyTrackingButton from "./CopyTrackingButton";
-import NotificationForm from "./NotificationForm";
+
 
 type Props = {
   searchParams: Promise<{ number?: string }>;
@@ -292,28 +292,6 @@ const isHold =
 </div>
 </section>
 
-{/* Shipment notifications */}
-<section className="notification-section">
-  <div className="notification-content">
-    <div className="notification-icon">🔔</div>
-
-    <div>
-      <p className="eyebrow">SHIPMENT UPDATES</p>
-      <h2>Stay updated on your delivery</h2>
-
-      <p>
-        Get notified when your shipment status changes or when
-        important delivery updates become available.
-      </p>
-    </div>
-  </div>
-
-  <div className="notification-actions">
-  <NotificationForm
-    trackingNumber={shipment.trackingNumber}
-  />
-</div>
-</section>
 
         {/* Tracking timeline */}
         <section className="timeline-section">

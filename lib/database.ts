@@ -228,37 +228,89 @@ export async function updateShipmentLocation(
   estimatedDelivery: string,
   note: string
 ) {
-  const now = new Date().toISOString();
+  console.log("=== SUPABASE UPDATE TEST ===");
+  console.log("Tracking number:", trackingNumber);
+  console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 
-  const { error: shipmentError } = await supabase
-    .from("shipments")
-    .update({
-      status,
-      current_location: location,
-      estimated_delivery: estimatedDelivery,
-      updated_at: now,
-    })
-    .eq("tracking_number", trackingNumber);
+  try {
+    const { data, error } = await supabase
+      .from("shipments")
+      .select("tracking_number")
+      .eq("tracking_number", trackingNumber)
+      .maybeSingle();
 
-  if (shipmentError) {
-    throw new Error(shipmentError.message);
+    console.log("Supabase SELECT result:", data);
+    console.log("Supabase SELECT error:", error);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data) {
+      throw new Error(
+        `Shipment ${trackingNumber} was not found in Supabase.`
+      );
+    }
+
+    console.log("=== SUPABASE CONNECTION WORKS ===");
+
+    const now = new Date().toISOString();
+
+    const { error: shipmentError } = await supabase
+      .from("shipments")
+      .update({
+        status,
+        current_location: location,
+        estimated_delivery: estimatedDelivery,
+        updated_at: now,
+      })
+      .eq("tracking_number", trackingNumber);
+
+    if (shipmentError) {
+      console.error(
+        "SUPABASE SHIPMENT UPDATE ERROR:",
+        shipmentError
+      );
+
+      throw new Error(shipmentError.message);
+    }
+
+    console.log("=== SHIPMENT UPDATED ===");
+
+    const { error: eventError } = await supabase
+      .from("tracking_events")
+      .insert({
+        tracking_number: trackingNumber,
+        status,
+        location,
+        note,
+        created_at: now,
+      });
+
+    if (eventError) {
+      console.error(
+        "SUPABASE TRACKING EVENT ERROR:",
+        eventError
+      );
+
+      throw new Error(eventError.message);
+    }
+
+    console.log("=== TRACKING EVENT CREATED ===");
+
+    return true;
+  } catch (error) {
+    console.error("=== SUPABASE UPDATE FAILED ===");
+    console.error(error);
+
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Error cause:", error.cause);
+      console.error("Error stack:", error.stack);
+    }
+
+    throw error;
   }
-
-  const { error: eventError } = await supabase
-    .from("tracking_events")
-    .insert({
-      tracking_number: trackingNumber,
-      status,
-      location,
-      note,
-      created_at: now,
-    });
-
-  if (eventError) {
-    throw new Error(eventError.message);
-  }
-
-  return true;
 }
 
 
