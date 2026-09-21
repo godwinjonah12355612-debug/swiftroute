@@ -266,7 +266,8 @@ export async function updateShipmentPayment(
   trackingNumber: string,
   shippingCost: string,
   amountPaid: string,
-  paymentStatus: string
+  paymentStatus: string,
+  paymentCurrency: string
 ) {
   const shippingCostNumber =
     Number(shippingCost.replace(/[^0-9.]/g, "")) || 0;
@@ -285,6 +286,7 @@ export async function updateShipmentPayment(
       amount_paid: amountPaid,
       remaining_balance: remainingBalance,
       payment_status: paymentStatus,
+      payment_currency: paymentCurrency,
       updated_at: new Date().toISOString(),
     })
     .eq("tracking_number", trackingNumber);
@@ -295,7 +297,6 @@ export async function updateShipmentPayment(
 
   return true;
 }
-
 
 /* ----------------------------------
    TRACKING EVENTS

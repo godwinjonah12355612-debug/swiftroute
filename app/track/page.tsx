@@ -365,7 +365,7 @@ const isHold =
             <p>No tracking history available yet.</p>
           )}
         </section>
-        <section className="payment-section">
+       <section className="payment-section">
   <p className="eyebrow">PAYMENT INFORMATION</p>
   <h2>Shipping payment</h2>
 
@@ -374,9 +374,15 @@ const isHold =
       <span>Total shipping cost</span>
       <strong>
         {shipment.shippingCost
-          ? `${shipment.paymentCurrency === "EUR" ? "€" : "$"}${String(
+          ? `${shipment.paymentCurrency === "EUR"
+              ? "€"
+              : shipment.paymentCurrency === "GBP"
+              ? "£"
+              : "$"}${String(
               shipment.shippingCost
-            ).replace(/[$€]/g, "")} ${shipment.paymentCurrency || "USD"}`
+            ).replace(/[$€£]/g, "")} ${
+              shipment.paymentCurrency || "USD"
+            }`
           : "Not specified"}
       </strong>
     </div>
@@ -385,9 +391,15 @@ const isHold =
       <span>Amount paid</span>
       <strong>
         {shipment.amountPaid
-          ? `${shipment.paymentCurrency === "EUR" ? "€" : "$"}${String(
+          ? `${shipment.paymentCurrency === "EUR"
+              ? "€"
+              : shipment.paymentCurrency === "GBP"
+              ? "£"
+              : "$"}${String(
               shipment.amountPaid
-            ).replace(/[$€]/g, "")} ${shipment.paymentCurrency || "USD"}`
+            ).replace(/[$€£]/g, "")} ${
+              shipment.paymentCurrency || "USD"
+            }`
           : "0"}
       </strong>
     </div>
@@ -396,9 +408,15 @@ const isHold =
       <span>Remaining balance</span>
       <strong>
         {shipment.remainingBalance
-          ? `${shipment.paymentCurrency === "EUR" ? "€" : "$"}${String(
+          ? `${shipment.paymentCurrency === "EUR"
+              ? "€"
+              : shipment.paymentCurrency === "GBP"
+              ? "£"
+              : "$"}${String(
               shipment.remainingBalance
-            ).replace(/[$€]/g, "")} ${shipment.paymentCurrency || "USD"}`
+            ).replace(/[$€£]/g, "")} ${
+              shipment.paymentCurrency || "USD"
+            }`
           : "0"}
       </strong>
     </div>

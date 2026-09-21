@@ -481,13 +481,17 @@ if (!trackingNumber || !shippingCost || !amountPaid || !paymentStatus) {
     redirect("/admin?error=payment-details");
   }
 
-  await updateShipmentPayment(
+  const paymentCurrency = String(
+  data.get("paymentCurrency") ?? "USD"
+).trim();
+
+await updateShipmentPayment(
   trackingNumber,
   shippingCost,
   amountPaid,
-  paymentStatus
+  paymentStatus,
+  paymentCurrency
 );
-
   revalidatePath("/admin");
   revalidatePath("/track");
 
@@ -954,14 +958,15 @@ const messages = await listCustomerMessages();
 <label>
   Payment currency
 
-  <select
-    name="paymentCurrency"
-    defaultValue="USD"
-    required
-  >
-    <option value="USD">US Dollar ($)</option>
-    <option value="EUR">Euro (€)</option>
-  </select>
+ <select
+  name="paymentCurrency"
+  defaultValue="USD"
+  required
+>
+  <option value="USD">US Dollar ($)</option>
+  <option value="EUR">Euro (€)</option>
+  <option value="GBP">British Pound (£)</option>
+</select>
 </label>
 
 <label>
@@ -1105,18 +1110,32 @@ const messages = await listCustomerMessages();
       />
 
       <input
-        name="amountPaid"
-        defaultValue={shipment.amountPaid}
-        placeholder="Amount paid"
-        required
-      />
+  name="amountPaid"
+  defaultValue={shipment.amountPaid}
+  placeholder="Amount paid"
+  required
+/>
 
-      <p>
-        Remaining balance:{" "}
-        <strong>
-          {shipment.remainingBalance}
-        </strong>
-      </p>
+<label>
+  Payment currency
+
+  <select
+    name="paymentCurrency"
+    defaultValue={shipment.paymentCurrency || "USD"}
+    required
+  >
+    <option value="USD">US Dollar ($)</option>
+    <option value="EUR">Euro (€)</option>
+    <option value="GBP">British Pound (£)</option>
+  </select>
+</label>
+
+<p>
+  Remaining balance:{" "}
+  <strong>
+    {shipment.remainingBalance}
+  </strong>
+</p>
 
       <label>
   Payment status
