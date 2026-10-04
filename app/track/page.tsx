@@ -332,7 +332,23 @@ const isHold =
                       📍 {event.location}
                     </p>
 
-                    <p>{event.note}</p>
+                    <p>
+  {event.note?.split(/(https?:\/\/[^\s]+)/g).map((part, index) =>
+    /^https?:\/\/[^\s]+$/.test(part) ? (
+      <a
+        key={index}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="tracking-link"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={index}>{part}</span>
+    )
+  )}
+</p>
 
                   </div>
                 </article>
